@@ -154,92 +154,6 @@ namespace Thing
             }
             return selectedFiles.ToArray();
         }
-        private EncryptionStatus EncryptFile(string path)
-        {
-            try
-            {
-                // ThingEncryptedFile - .tef
-                string extension = Path.GetExtension(path);
-                if (extension == ".tef")
-                {
-                    return EncryptionStatus.AlreadyEncrypted;
-                }
-                else
-                {
-                    string newFilePath = path + ".tef";
-
-                    using (Aes aes = Aes.Create())
-                    {
-                        aes.Key = key;
-                        aes.IV = iv;
-
-                        using (FileStream fsInput = new FileStream(path, FileMode.Open, FileAccess.Read))
-                        using (FileStream fsOutput = new FileStream(newFilePath, FileMode.Create, FileAccess.Write))
-                        using (CryptoStream cs = new CryptoStream(fsOutput, aes.CreateEncryptor(), CryptoStreamMode.Write))
-                        {
-                            fsInput.CopyTo(cs);
-                        }
-                    }
-                    File.Delete(path);
-
-                    return EncryptionStatus.Encrypted;
-                }
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                Debug.WriteLine($"Access denied: {ex.Message}");
-                return EncryptionStatus.AccesDenied;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"An error occurred: {ex.Message}");
-                return EncryptionStatus.Other;
-            }
-        }
-        private EncryptionStatus DecryptFile(string path)
-        {
-            try
-            {
-                // ThingEncryptedFile - .tef
-                string extension = Path.GetExtension(path);
-                if (extension != ".tef")
-                {
-                    return EncryptionStatus.AlreadyDecrypted;
-                }
-                else
-                {
-                    string newFilePath = path.Replace(".tef", "");
-
-                    using (Aes aes = Aes.Create())
-                    {
-                        aes.Key = key;
-                        aes.IV = iv;
-
-                        using (FileStream fsInput = new FileStream(path, FileMode.Open, FileAccess.Read))
-                        using (FileStream fsOutput = new FileStream(newFilePath, FileMode.Create, FileAccess.Write))
-                        using (CryptoStream cs = new CryptoStream(fsOutput, aes.CreateDecryptor(), CryptoStreamMode.Write))
-                        {
-                            fsInput.CopyTo(cs);
-                        }
-                    }
-
-                    File.Delete(path);
-
-                    return EncryptionStatus.Decrypted;
-                }
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                Debug.WriteLine($"Access denied: {ex.Message}");
-                return EncryptionStatus.AccesDenied;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"An error occurred: {ex.Message}");
-                return EncryptionStatus.Other;
-            }
-        }
-
         private void button_generateNewKey_Click(object sender, EventArgs e)
         {
             byte[] generateKey = new byte[32];
@@ -306,62 +220,147 @@ namespace Thing
                 button_encryptallANDsub.Enabled = true;
             }
         }
-        private enum EncryptionStatus
+        private async Task<EncryptionStatus> EncryptFile(string path)
         {
-            Decrypted,
-            Encrypted,
-            AlreadyEncrypted,
-            AlreadyDecrypted,
-            AccesDenied,
-            Other
+            try
+            {
+                // ThingEncryptedFile - .tef
+                string extension = Path.GetExtension(path);
+                if (extension == ".tef")
+                {
+                    return EncryptionStatus.AlreadyEncrypted;
+                }
+                else
+                {
+                    string newFilePath = path + ".tef";
+
+                    using (Aes aes = Aes.Create())
+                    {
+                        aes.Key = key;
+                        aes.IV = iv;
+
+                        using (FileStream fsInput = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true))
+                        using (FileStream fsOutput = new FileStream(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true))
+                        using (CryptoStream cs = new CryptoStream(fsOutput, aes.CreateEncryptor(), CryptoStreamMode.Write))
+                        {
+                            await fsInput.CopyToAsync(cs);
+                        }
+                    }
+
+                    return EncryptionStatus.Encrypted;
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Debug.WriteLine($"Access denied: {ex.Message}");
+                return EncryptionStatus.AccesDenied;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"An error occurred: {ex.Message}");
+                return EncryptionStatus.Other;
+            }
+            finally
+            {
+                if (File.Exists(path))
+                {
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch { }
+                }
+            }
         }
-        private void button_encryptSelected_Click(object sender, EventArgs e)
+        private async Task<EncryptionStatus> DecryptFile(string path)
+        {
+            try
+            {
+                // ThingEncryptedFile - .tef
+                string extension = Path.GetExtension(path);
+                if (extension != ".tef")
+                {
+                    return EncryptionStatus.AlreadyDecrypted;
+                }
+                else
+                {
+                    string newFilePath = path.Replace(".tef", "");
+
+                    using (Aes aes = Aes.Create())
+                    {
+                        aes.Key = key;
+                        aes.IV = iv;
+
+                        using (FileStream fsInput = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true))
+                        using (FileStream fsOutput = new FileStream(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true))
+                        using (CryptoStream cs = new CryptoStream(fsOutput, aes.CreateDecryptor(), CryptoStreamMode.Write))
+                        {
+                            await fsInput.CopyToAsync(cs);
+                        }
+                    }
+
+                    return EncryptionStatus.Decrypted;
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Debug.WriteLine($"Access denied: {ex.Message}");
+                return EncryptionStatus.AccesDenied;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"An error occurred: {ex.Message}");
+                return EncryptionStatus.Other;
+            }
+            finally
+            {
+                if (File.Exists(path))
+                {
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch { }
+                }
+            }
+        }
+        //CRYPTO STUFF
+        private async void button_encryptSelected_Click(object sender, EventArgs e)
         {
             DateTime start = DateTime.Now;
             string[] targets = GetSelected();
             if (targets.Length > 0)
             {
-                List<EncryptionStatus> status = new List<EncryptionStatus>();
-                foreach (string target in targets)
+                Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
+                Debug.WriteLine(tasks.Length + " " + targets.Length);
+
+                for (int i = 0; i < tasks.Length; i++)
                 {
-                    EncryptionStatus successstatus = EncryptFile(target);
-                    status.Add(successstatus);
+                    Debug.WriteLine("Running Task " + i);
+                    tasks[i] = EncryptFile(targets[i]);
                 }
+
+                EncryptionStatus[] status = await Task.WhenAll(tasks);
+                Debug.WriteLine("All Tasks completed!");
                 int success = 0;
                 int alreadyencrypted = 0;
                 int acceserror = 0;
                 int other = 0;
                 foreach (EncryptionStatus estatus in status)
                 {
-                    if (estatus == EncryptionStatus.Encrypted)
-                        success++;
-                    if (estatus == EncryptionStatus.AlreadyEncrypted)
-                        alreadyencrypted++;
-                    if (estatus == EncryptionStatus.AccesDenied)
-                        acceserror++;
-                    if (estatus == EncryptionStatus.Other)
-                        other++;
+                    if (estatus == EncryptionStatus.Encrypted) success++;
+                    if (estatus == EncryptionStatus.AlreadyEncrypted) alreadyencrypted++;
+                    if (estatus == EncryptionStatus.AccesDenied) acceserror++;
+                    if (estatus == EncryptionStatus.Other) other++;
                 }
                 DateTime end = DateTime.Now;
                 TimeSpan duration = end - start;
                 string formattedDuration = $"{duration.Minutes}m {duration.Seconds}s {duration.Milliseconds:0000}ms";
                 string resultstring = $"The encryption process has been completed in {formattedDuration}.";
-                if (success > 0)
-                {
-                    resultstring += $"\r\n{success} files have been encrypted.";
-                }
-                if (alreadyencrypted > 0)
-                {
-                    resultstring += $"\r\n{alreadyencrypted} files were already encrypted.";
-                }
-                if (acceserror > 0)
-                {
-                    resultstring += $"\r\n{acceserror} files could not be accessed.";
-                }
-                if (other > 0)
-                {
-                    resultstring += $"\r\n{other} files could not be encrypted due to unknown reasons.";
-                }
+                if (success > 0) resultstring += $"\r\n{success} files have been encrypted.";
+                if (alreadyencrypted > 0) resultstring += $"\r\n{alreadyencrypted} files were already encrypted.";
+                if (acceserror > 0) resultstring += $"\r\n{acceserror} files could not be accessed.";
+                if (other > 0) resultstring += $"\r\n{other} files could not be encrypted due to unknown reasons.";
                 DialogResult r = MessageBox.Show(resultstring, "Encryption completed!", MessageBoxButtons.OK);
                 UpdateFiles();
             }
@@ -370,7 +369,7 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
-        private void button_encryptAll_Click(object sender, EventArgs e)
+        private async void button_encryptAll_Click(object sender, EventArgs e)
         {
             DateTime start = DateTime.Now;
             string[] targets = filepaths.ToArray();
@@ -380,47 +379,37 @@ namespace Thing
             }
             if (targets.Length > 0)
             {
-                List<EncryptionStatus> status = new List<EncryptionStatus>();
-                foreach (string target in targets)
+                Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
+                Debug.WriteLine(tasks.Length + " " + targets.Length);
+
+                for(int i = 0; i < tasks.Length; i++)
                 {
-                    EncryptionStatus successstatus = EncryptFile(target);
-                    status.Add(successstatus);
+                    Debug.WriteLine("Running Task " + i);
+                    tasks[i] = EncryptFile(targets[i]);
                 }
+
+                EncryptionStatus[] status = await Task.WhenAll(tasks);
+                Debug.WriteLine("All Tasks completed!");
+
                 int success = 0;
                 int alreadyencrypted = 0;
                 int acceserror = 0;
                 int other = 0;
                 foreach (EncryptionStatus estatus in status)
                 {
-                    if (estatus == EncryptionStatus.Encrypted)
-                        success++;
-                    if (estatus == EncryptionStatus.AlreadyEncrypted)
-                        alreadyencrypted++;
-                    if (estatus == EncryptionStatus.AccesDenied)
-                        acceserror++;
-                    if (estatus == EncryptionStatus.Other)
-                        other++;
+                    if (estatus == EncryptionStatus.Encrypted) success++;
+                    else if (estatus == EncryptionStatus.AlreadyEncrypted) alreadyencrypted++;
+                    else if (estatus == EncryptionStatus.AccesDenied) acceserror++;
+                    else if (estatus == EncryptionStatus.Other) other++;
                 }
                 DateTime end = DateTime.Now;
                 TimeSpan duration = end - start;
                 string formattedDuration = $"{duration.Minutes}m {duration.Seconds}s {duration.Milliseconds:0000}ms";
                 string resultstring = $"The encryption process has been completed in {formattedDuration}.";
-                if (success > 0)
-                {
-                    resultstring += $"\r\n{success} files have been encrypted.";
-                }
-                if (alreadyencrypted > 0)
-                {
-                    resultstring += $"\r\n{alreadyencrypted} files were already encrypted.";
-                }
-                if (acceserror > 0)
-                {
-                    resultstring += $"\r\n{acceserror} files could not be accessed.";
-                }
-                if (other > 0)
-                {
-                    resultstring += $"\r\n{other} files could not be encrypted due to unknown reasons.";
-                }
+                if (success > 0) resultstring += $"\r\n{success} files have been encrypted.";
+                if (alreadyencrypted > 0) resultstring += $"\r\n{alreadyencrypted} files were already encrypted.";
+                if (acceserror > 0) resultstring += $"\r\n{acceserror} files could not be accessed.";
+                if (other > 0) resultstring += $"\r\n{other} files could not be encrypted due to unknown reasons.";
                 DialogResult r = MessageBox.Show(resultstring, "Encryption completed!", MessageBoxButtons.OK);
                 UpdateFiles();
             }
@@ -429,54 +418,43 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
-
-        private void button_decryptSelected_Click(object sender, EventArgs e)
+        private async void button_decryptSelected_Click(object sender, EventArgs e)
         {
             DateTime start = DateTime.Now;
             string[] targets = GetSelected();
             if (targets.Length > 0)
             {
-                List<EncryptionStatus> status = new List<EncryptionStatus>();
-                foreach (string target in targets)
+                Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
+                Debug.WriteLine(tasks.Length + " " + targets.Length);
+
+                for (int i = 0; i < tasks.Length; i++)
                 {
-                    EncryptionStatus successstatus = DecryptFile(target);
-                    status.Add(successstatus);
+                    int index = i;
+                    Debug.WriteLine("Running Task " + index);
+                    tasks[index] = DecryptFile(targets[index]);
                 }
+
+                EncryptionStatus[] status = await Task.WhenAll(tasks);
+                Debug.WriteLine("All Tasks completed!");
                 int success = 0;
                 int alreadydecrypted = 0;
                 int acceserror = 0;
                 int other = 0;
                 foreach (EncryptionStatus estatus in status)
                 {
-                    if (estatus == EncryptionStatus.Decrypted)
-                        success++;
-                    if (estatus == EncryptionStatus.AlreadyDecrypted)
-                        alreadydecrypted++;
-                    if (estatus == EncryptionStatus.AccesDenied)
-                        acceserror++;
-                    if (estatus == EncryptionStatus.Other)
-                        other++;
+                    if (estatus == EncryptionStatus.Decrypted) success++;
+                    if (estatus == EncryptionStatus.AlreadyDecrypted) alreadydecrypted++;
+                    if (estatus == EncryptionStatus.AccesDenied) acceserror++;
+                    if (estatus == EncryptionStatus.Other) other++;
                 }
                 DateTime end = DateTime.Now;
                 TimeSpan duration = end - start;
                 string formattedDuration = $"{duration.Minutes}m {duration.Seconds}s {duration.Milliseconds:0000}ms";
                 string resultstring = $"The decryption process has been completed in {formattedDuration}.";
-                if (success > 0)
-                {
-                    resultstring += $"\r\n{success} files have been decrypted.";
-                }
-                if (alreadydecrypted > 0)
-                {
-                    resultstring += $"\r\n{alreadydecrypted} files were already decrypted.";
-                }
-                if (acceserror > 0)
-                {
-                    resultstring += $"\r\n{acceserror} files could not be accessed.";
-                }
-                if (other > 0)
-                {
-                    resultstring += $"\r\n{other} files could not be decrypted due to unknown reasons.";
-                }
+                if (success > 0) resultstring += $"\r\n{success} files have been decrypted.";
+                if (alreadydecrypted > 0) resultstring += $"\r\n{alreadydecrypted} files were already decrypted.";
+                if (acceserror > 0) resultstring += $"\r\n{acceserror} files could not be accessed.";
+                if (other > 0) resultstring += $"\r\n{other} files could not be decrypted due to unknown reasons.";
                 DialogResult r = MessageBox.Show(resultstring, "Decryption completed!", MessageBoxButtons.OK);
                 UpdateFiles();
             }
@@ -485,54 +463,41 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
-
-        private void button_decryptAll_Click(object sender, EventArgs e)
+        private async void button_decryptAll_Click(object sender, EventArgs e)
         {
             DateTime start = DateTime.Now;
-            string[] targets = filepaths;
+            string[] targets = filepaths.ToArray();
             if (targets.Length > 0)
             {
-                List<EncryptionStatus> status = new List<EncryptionStatus>();
-                foreach (string target in targets)
+                Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
+                for (int i = 0; i < tasks.Length; i++)
                 {
-                    EncryptionStatus successstatus = DecryptFile(target);
-                    status.Add(successstatus);
+                    int index = i;
+                    Debug.WriteLine("Running Task " + index);
+                    tasks[index] = DecryptFile(targets[index]);
                 }
+
+                EncryptionStatus[] status = await Task.WhenAll(tasks);
+                Debug.WriteLine("All Tasks completed!");
                 int success = 0;
                 int alreadydecrypted = 0;
                 int acceserror = 0;
                 int other = 0;
                 foreach (EncryptionStatus estatus in status)
                 {
-                    if (estatus == EncryptionStatus.Decrypted)
-                        success++;
-                    if (estatus == EncryptionStatus.AlreadyDecrypted)
-                        alreadydecrypted++;
-                    if (estatus == EncryptionStatus.AccesDenied)
-                        acceserror++;
-                    if (estatus == EncryptionStatus.Other)
-                        other++;
+                    if (estatus == EncryptionStatus.Decrypted) success++;
+                    if (estatus == EncryptionStatus.AlreadyDecrypted) alreadydecrypted++;
+                    if (estatus == EncryptionStatus.AccesDenied) acceserror++;
+                    if (estatus == EncryptionStatus.Other) other++;
                 }
                 DateTime end = DateTime.Now;
                 TimeSpan duration = end - start;
                 string formattedDuration = $"{duration.Minutes}m {duration.Seconds}s {duration.Milliseconds:0000}ms";
                 string resultstring = $"The decryption process has been completed in {formattedDuration}.";
-                if (success > 0)
-                {
-                    resultstring += $"\r\n{success} files have been decrypted.";
-                }
-                if (alreadydecrypted > 0)
-                {
-                    resultstring += $"\r\n{alreadydecrypted} files were already decrypted.";
-                }
-                if (acceserror > 0)
-                {
-                    resultstring += $"\r\n{acceserror} files could not be accessed.";
-                }
-                if (other > 0)
-                {
-                    resultstring += $"\r\n{other} files could not be decrypted due to unknown reasons.";
-                }
+                if (success > 0) resultstring += $"\r\n{success} files have been decrypted.";
+                if (alreadydecrypted > 0) resultstring += $"\r\n{alreadydecrypted} files were already decrypted.";
+                if (acceserror > 0) resultstring += $"\r\n{acceserror} files could not be accessed.";
+                if (other > 0) resultstring += $"\r\n{other} files could not be decrypted due to unknown reasons.";
                 DialogResult r = MessageBox.Show(resultstring, "Decryption completed!", MessageBoxButtons.OK);
                 UpdateFiles();
             }
@@ -540,6 +505,15 @@ namespace Thing
             {
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
+        }
+        private enum EncryptionStatus
+        {
+            Decrypted,
+            Encrypted,
+            AlreadyEncrypted,
+            AlreadyDecrypted,
+            AccesDenied,
+            Other
         }
     }
 }

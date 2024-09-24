@@ -274,7 +274,7 @@
             label_restricted.AutoSize = true;
             label_restricted.Font = new Font("Segoe UI", 11F, FontStyle.Bold, GraphicsUnit.Point, 0);
             label_restricted.ForeColor = Color.Red;
-            label_restricted.Location = new Point(354, 675);
+            label_restricted.Location = new Point(32, 666);
             label_restricted.Name = "label_restricted";
             label_restricted.Size = new Size(265, 30);
             label_restricted.TabIndex = 11;
