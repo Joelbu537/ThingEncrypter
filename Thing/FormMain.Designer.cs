@@ -158,6 +158,7 @@
             button_encryptAll.TabIndex = 8;
             button_encryptAll.Text = "All";
             button_encryptAll.UseVisualStyleBackColor = true;
+            button_encryptAll.Click += button_encryptAll_Click;
             // 
             // panel_encrypt
             // 
@@ -255,6 +256,7 @@
             button_decryptAll.TabIndex = 8;
             button_decryptAll.Text = "All";
             button_decryptAll.UseVisualStyleBackColor = true;
+            button_decryptAll.Click += button_decryptAll_Click;
             // 
             // comboBox_drives
             // 
@@ -383,6 +385,11 @@
             panel1.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
+        }
+
+        private void Button_encryptAll_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion
