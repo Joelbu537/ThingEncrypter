@@ -43,7 +43,7 @@
             label_decryptionsOptions = new Label();
             panel_decrypt = new Panel();
             button_decryptallANDsub = new Button();
-            _decryptSelected = new Button();
+            button_decryptSelected = new Button();
             button_decryptAll = new Button();
             comboBox_drives = new ComboBox();
             label_restricted = new Label();
@@ -51,6 +51,8 @@
             panel1 = new Panel();
             button_generateNewKey = new Button();
             button_selectKey = new Button();
+            label_keydisplay = new Label();
+            label_keystatus = new Label();
             panel_encrypt.SuspendLayout();
             panel_decrypt.SuspendLayout();
             panel1.SuspendLayout();
@@ -134,6 +136,7 @@
             // 
             // button_encryptSelected
             // 
+            button_encryptSelected.Enabled = false;
             button_encryptSelected.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             button_encryptSelected.Location = new Point(14, 15);
             button_encryptSelected.Margin = new Padding(7, 8, 7, 8);
@@ -146,6 +149,7 @@
             // 
             // button_encryptAll
             // 
+            button_encryptAll.Enabled = false;
             button_encryptAll.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             button_encryptAll.Location = new Point(14, 70);
             button_encryptAll.Margin = new Padding(7, 8, 7, 8);
@@ -170,6 +174,7 @@
             // 
             // button_encryptallANDsub
             // 
+            button_encryptallANDsub.Enabled = false;
             button_encryptallANDsub.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             button_encryptallANDsub.Location = new Point(14, 124);
             button_encryptallANDsub.Margin = new Padding(7, 8, 7, 8);
@@ -194,7 +199,7 @@
             // 
             label_decryptionsOptions.AutoSize = true;
             label_decryptionsOptions.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label_decryptionsOptions.Location = new Point(1001, 358);
+            label_decryptionsOptions.Location = new Point(1001, 340);
             label_decryptionsOptions.Margin = new Padding(4, 0, 4, 0);
             label_decryptionsOptions.Name = "label_decryptionsOptions";
             label_decryptionsOptions.Size = new Size(80, 25);
@@ -206,9 +211,9 @@
             panel_decrypt.BackColor = SystemColors.ControlDark;
             panel_decrypt.BackgroundImageLayout = ImageLayout.None;
             panel_decrypt.Controls.Add(button_decryptallANDsub);
-            panel_decrypt.Controls.Add(_decryptSelected);
+            panel_decrypt.Controls.Add(button_decryptSelected);
             panel_decrypt.Controls.Add(button_decryptAll);
-            panel_decrypt.Location = new Point(967, 388);
+            panel_decrypt.Location = new Point(967, 370);
             panel_decrypt.Margin = new Padding(4, 5, 4, 5);
             panel_decrypt.Name = "panel_decrypt";
             panel_decrypt.Size = new Size(136, 179);
@@ -216,6 +221,7 @@
             // 
             // button_decryptallANDsub
             // 
+            button_decryptallANDsub.Enabled = false;
             button_decryptallANDsub.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             button_decryptallANDsub.Location = new Point(14, 124);
             button_decryptallANDsub.Margin = new Padding(7, 8, 7, 8);
@@ -225,19 +231,22 @@
             button_decryptallANDsub.Text = "Sub + All";
             button_decryptallANDsub.UseVisualStyleBackColor = true;
             // 
-            // _decryptSelected
+            // button_decryptSelected
             // 
-            _decryptSelected.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            _decryptSelected.Location = new Point(14, 15);
-            _decryptSelected.Margin = new Padding(7, 8, 7, 8);
-            _decryptSelected.Name = "_decryptSelected";
-            _decryptSelected.Size = new Size(107, 38);
-            _decryptSelected.TabIndex = 7;
-            _decryptSelected.Text = "Selected";
-            _decryptSelected.UseVisualStyleBackColor = true;
+            button_decryptSelected.Enabled = false;
+            button_decryptSelected.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            button_decryptSelected.Location = new Point(14, 15);
+            button_decryptSelected.Margin = new Padding(7, 8, 7, 8);
+            button_decryptSelected.Name = "button_decryptSelected";
+            button_decryptSelected.Size = new Size(107, 38);
+            button_decryptSelected.TabIndex = 7;
+            button_decryptSelected.Text = "Selected";
+            button_decryptSelected.UseVisualStyleBackColor = true;
+            button_decryptSelected.Click += button_decryptSelected_Click;
             // 
             // button_decryptAll
             // 
+            button_decryptAll.Enabled = false;
             button_decryptAll.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             button_decryptAll.Location = new Point(14, 70);
             button_decryptAll.Margin = new Padding(7, 8, 7, 8);
@@ -274,7 +283,7 @@
             // 
             label_key.AutoSize = true;
             label_key.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label_key.Location = new Point(1014, 595);
+            label_key.Location = new Point(1014, 555);
             label_key.Margin = new Padding(4, 0, 4, 0);
             label_key.Name = "label_key";
             label_key.Size = new Size(44, 25);
@@ -318,11 +327,34 @@
             button_selectKey.UseVisualStyleBackColor = true;
             button_selectKey.Click += button_selectKey_Click;
             // 
+            // label_keydisplay
+            // 
+            label_keydisplay.AutoSize = true;
+            label_keydisplay.Location = new Point(967, 596);
+            label_keydisplay.Name = "label_keydisplay";
+            label_keydisplay.Size = new Size(75, 25);
+            label_keydisplay.TabIndex = 13;
+            label_keydisplay.Text = "Loaded:";
+            // 
+            // label_keystatus
+            // 
+            label_keystatus.AutoSize = true;
+            label_keystatus.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label_keystatus.ForeColor = Color.Red;
+            label_keystatus.Location = new Point(1044, 596);
+            label_keystatus.Name = "label_keystatus";
+            label_keystatus.Size = new Size(62, 25);
+            label_keystatus.TabIndex = 14;
+            label_keystatus.Text = "FALSE";
+            label_keystatus.TextAlign = ContentAlignment.MiddleRight;
+            // 
             // FormMain
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1141, 768);
+            Controls.Add(label_keystatus);
+            Controls.Add(label_keydisplay);
             Controls.Add(panel1);
             Controls.Add(label_key);
             Controls.Add(label_restricted);
@@ -368,7 +400,7 @@
         private Label label_encryptionOperations;
         private Label label_decryptionsOptions;
         private Panel panel_decrypt;
-        private Button _decryptSelected;
+        private Button button_decryptSelected;
         private Button button_decryptAll;
         private ComboBox comboBox_drives;
         private Label label_restricted;
@@ -378,5 +410,7 @@
         private Panel panel1;
         private Button button_generateNewKey;
         private Button button_selectKey;
+        private Label label_keydisplay;
+        private Label label_keystatus;
     }
 }
