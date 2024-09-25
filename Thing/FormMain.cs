@@ -56,11 +56,15 @@ namespace Thing
         }
         private void UpdateFiles()
         {
-            progressBar.Visible = true;
-            progressBar.Value = 0;
-            label_restricted.Enabled = false;
-            checkedListBox_files.Items.Clear();
-            listBox_directories.Items.Clear();
+            try
+            {
+                progressBar.Visible = true;
+                progressBar.Value = 0;
+                label_restricted.Enabled = false;
+                checkedListBox_files.Items.Clear();
+                listBox_directories.Items.Clear();
+            }
+            catch { }
             try
             {
                 if (!textBox_path.Text.EndsWith(":"))
@@ -145,8 +149,7 @@ namespace Thing
             {
                 if (checkedListBox_files.GetItemChecked(i))
                 {
-                    // Benutze den i-th Index für den filepaths Array
-                    if (i < filepaths.Length) // Sicherstellen, dass der Index gültig ist
+                    if (i < filepaths.Length)
                     {
                         selectedFiles.Add(filepaths[i]);
                     }
@@ -247,6 +250,7 @@ namespace Thing
                         }
                     }
 
+                    File.Delete(path);
                     return EncryptionStatus.Encrypted;
                 }
             }
@@ -259,17 +263,6 @@ namespace Thing
             {
                 Debug.WriteLine($"An error occurred: {ex.Message}");
                 return EncryptionStatus.Other;
-            }
-            finally
-            {
-                if (File.Exists(path))
-                {
-                    try
-                    {
-                        File.Delete(path);
-                    }
-                    catch { }
-                }
             }
         }
         private async Task<EncryptionStatus> DecryptFile(string path)
@@ -299,6 +292,7 @@ namespace Thing
                         }
                     }
 
+                    File.Delete(path);
                     return EncryptionStatus.Decrypted;
                 }
             }
@@ -312,19 +306,17 @@ namespace Thing
                 Debug.WriteLine($"An error occurred: {ex.Message}");
                 return EncryptionStatus.Other;
             }
-            finally
-            {
-                if (File.Exists(path))
-                {
-                    try
-                    {
-                        File.Delete(path);
-                    }
-                    catch { }
-                }
-            }
         }
         //CRYPTO STUFF
+        private void UpdateProgressBar()
+        {
+            progressBar.Value++;
+        }
+        private void ResetProgressBar(int value)
+        {
+            progressBar.Value = 0;
+            progressBar.Maximum = value;
+        }
         private async void button_encryptSelected_Click(object sender, EventArgs e)
         {
             DateTime start = DateTime.Now;
@@ -333,15 +325,17 @@ namespace Thing
             {
                 Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
                 Debug.WriteLine(tasks.Length + " " + targets.Length);
+                progressBar.Maximum = targets.Length;
+                progressBar.Value = 0;
 
                 for (int i = 0; i < tasks.Length; i++)
                 {
                     Debug.WriteLine("Running Task " + i);
                     tasks[i] = EncryptFile(targets[i]);
+                    progressBar.Value++;
                 }
 
                 EncryptionStatus[] status = await Task.WhenAll(tasks);
-                Debug.WriteLine("All Tasks completed!");
                 int success = 0;
                 int alreadyencrypted = 0;
                 int acceserror = 0;
@@ -382,12 +376,11 @@ namespace Thing
                 Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
                 Debug.WriteLine(tasks.Length + " " + targets.Length);
 
-                for(int i = 0; i < tasks.Length; i++)
+                for (int i = 0; i < tasks.Length; i++)
                 {
                     Debug.WriteLine("Running Task " + i);
                     tasks[i] = EncryptFile(targets[i]);
                 }
-
                 EncryptionStatus[] status = await Task.WhenAll(tasks);
                 Debug.WriteLine("All Tasks completed!");
 
@@ -425,6 +418,8 @@ namespace Thing
             if (targets.Length > 0)
             {
                 Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
+                progressBar.Maximum = targets.Length;
+                progressBar.Value = 0;
                 Debug.WriteLine(tasks.Length + " " + targets.Length);
 
                 for (int i = 0; i < tasks.Length; i++)
@@ -432,6 +427,7 @@ namespace Thing
                     int index = i;
                     Debug.WriteLine("Running Task " + index);
                     tasks[index] = DecryptFile(targets[index]);
+                    progressBar.Value++;
                 }
 
                 EncryptionStatus[] status = await Task.WhenAll(tasks);
@@ -463,22 +459,39 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
-        private async void button_decryptAll_Click(object sender, EventArgs e)
+        private void Button_decryptAll_Click(object sender, EventArgs e)
+        {
+            Thread t = new Thread(decryptAll_Click);
+            t.Start();
+        }
+        private async void decryptAll_Click()
         {
             DateTime start = DateTime.Now;
             string[] targets = filepaths.ToArray();
             if (targets.Length > 0)
             {
+                this.Invoke((MethodInvoker)delegate
+                {
+                    ResetProgressBar(targets.Length);
+                });
                 Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
+
                 for (int i = 0; i < tasks.Length; i++)
                 {
-                    int index = i;
-                    Debug.WriteLine("Running Task " + index);
-                    tasks[index] = DecryptFile(targets[index]);
+                    Debug.WriteLine("Running Task " + i);
+                    tasks[i] = DecryptFile(targets[i]);
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        UpdateProgressBar();
+                    });
                 }
 
                 EncryptionStatus[] status = await Task.WhenAll(tasks);
                 Debug.WriteLine("All Tasks completed!");
+                this.Invoke((MethodInvoker)delegate
+                {
+                    UpdateFiles();
+                });
                 int success = 0;
                 int alreadydecrypted = 0;
                 int acceserror = 0;
@@ -499,7 +512,6 @@ namespace Thing
                 if (acceserror > 0) resultstring += $"\r\n{acceserror} files could not be accessed.";
                 if (other > 0) resultstring += $"\r\n{other} files could not be decrypted due to unknown reasons.";
                 DialogResult r = MessageBox.Show(resultstring, "Decryption completed!", MessageBoxButtons.OK);
-                UpdateFiles();
             }
             else
             {

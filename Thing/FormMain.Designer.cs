@@ -256,7 +256,7 @@
             button_decryptAll.TabIndex = 8;
             button_decryptAll.Text = "All";
             button_decryptAll.UseVisualStyleBackColor = true;
-            button_decryptAll.Click += button_decryptAll_Click;
+            button_decryptAll.Click += Button_decryptAll_Click;
             // 
             // comboBox_drives
             // 
