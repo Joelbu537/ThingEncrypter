@@ -13,7 +13,6 @@ namespace Thing
         {
             InitializeComponent();
         }
-
         private void Form1_Load(object sender, EventArgs e)
         {
             drives = DriveInfo.GetDrives();
@@ -38,6 +37,7 @@ namespace Thing
             }
             UpdateFiles();
         }
+        //UI Methods
         private void textBox_path_TextChanged(object sender, EventArgs e)
         {
             if (Path.Exists(textBox_path.Text) && textBox_path.Text.Contains("\\"))
@@ -49,65 +49,10 @@ namespace Thing
                 button_gotopath.Enabled = false;
             }
         }
-
         private void button_gotopath_Click(object sender, EventArgs e)
         {
             UpdateFiles();
         }
-        private void UpdateFiles()
-        {
-            try
-            {
-                progressBar.Visible = true;
-                progressBar.Value = 0;
-                label_restricted.Enabled = false;
-                checkedListBox_files.Items.Clear();
-                listBox_directories.Items.Clear();
-            }
-            catch { }
-            try
-            {
-                if (!textBox_path.Text.EndsWith(":"))
-                {
-                    listBox_directories.Items.Add("[RETURN]");
-                }
-                if (textBox_path.Text.EndsWith(":"))
-                {
-                    textBox_path.Text += "\\";
-                }
-                string[] files = Directory.GetFiles(textBox_path.Text);
-                filepaths = files.ToArray(); //POINTER!!!! HOLY SHIT!!!!!1!!
-                string[] directories = Directory.GetDirectories(textBox_path.Text);
-                progressBar.Maximum = files.Length + directories.Length;
-                if (progressBar.Maximum == 0)
-                {
-                    progressBar.Maximum = 1;
-                }
-                for (int i = 0; i < directories.Length; i++)
-                {
-                    int lastindx = directories[i].LastIndexOf('\\');
-                    directories[i] = directories[i].Substring(lastindx);
-                    directories[i] = directories[i].Replace("\\", "");
-                    progressBar.Value++;
-                    listBox_directories.Items.Add(directories[i]);
-                }
-                for (int i = 0; i < files.Length; i++)
-                {
-                    int lastindx = files[i].LastIndexOf('\\');
-                    files[i] = files[i].Substring(lastindx);
-                    files[i] = files[i].Replace("\\", "");
-                    progressBar.Value++;
-                    checkedListBox_files.Items.Add(files[i]);
-                }
-                progressBar.Value = progressBar.Maximum;
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                label_restricted.Visible = true;
-            }
-            catch (Exception ex) { }
-        }
-
         private void listBox_directories_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (listBox_directories.SelectedItem != null)
@@ -130,7 +75,6 @@ namespace Thing
                 UpdateFiles();
             }
         }
-
         private void comboBox_drives_SelectedIndexChanged(object sender, EventArgs e)
         {
             for (int i = 0; i < drives.Length; i++)
@@ -141,21 +85,6 @@ namespace Thing
                 }
             }
             UpdateFiles();
-        }
-        private string[] GetSelected()
-        {
-            List<string> selectedFiles = new List<string>();
-            for (int i = 0; i < checkedListBox_files.Items.Count; i++)
-            {
-                if (checkedListBox_files.GetItemChecked(i))
-                {
-                    if (i < filepaths.Length)
-                    {
-                        selectedFiles.Add(filepaths[i]);
-                    }
-                }
-            }
-            return selectedFiles.ToArray();
         }
         private void button_generateNewKey_Click(object sender, EventArgs e)
         {
@@ -223,6 +152,76 @@ namespace Thing
                 button_encryptallANDsub.Enabled = true;
             }
         }
+        //Base Methods
+        private string[] GetSelected()
+        {
+            List<string> selectedFiles = new List<string>();
+            for (int i = 0; i < checkedListBox_files.Items.Count; i++)
+            {
+                if (checkedListBox_files.GetItemChecked(i))
+                {
+                    if (i < filepaths.Length)
+                    {
+                        selectedFiles.Add(filepaths[i]);
+                    }
+                }
+            }
+            return selectedFiles.ToArray();
+        }
+        private void UpdateFiles()
+        {
+            try
+            {
+                progressBar.Visible = true;
+                progressBar.Value = 0;
+                label_restricted.Enabled = false;
+                checkedListBox_files.Items.Clear();
+                listBox_directories.Items.Clear();
+            }
+            catch { }
+            try
+            {
+                if (!textBox_path.Text.EndsWith(":"))
+                {
+                    listBox_directories.Items.Add("[RETURN]");
+                }
+                if (textBox_path.Text.EndsWith(":"))
+                {
+                    textBox_path.Text += "\\";
+                }
+                string[] files = Directory.GetFiles(textBox_path.Text);
+                filepaths = files.ToArray(); //POINTER!!!! HOLY SHIT!!!!!1!!
+                string[] directories = Directory.GetDirectories(textBox_path.Text);
+                progressBar.Maximum = files.Length + directories.Length;
+                if (progressBar.Maximum == 0)
+                {
+                    progressBar.Maximum = 1;
+                }
+                for (int i = 0; i < directories.Length; i++)
+                {
+                    int lastindx = directories[i].LastIndexOf('\\');
+                    directories[i] = directories[i].Substring(lastindx);
+                    directories[i] = directories[i].Replace("\\", "");
+                    progressBar.Value++;
+                    listBox_directories.Items.Add(directories[i]);
+                }
+                for (int i = 0; i < files.Length; i++)
+                {
+                    int lastindx = files[i].LastIndexOf('\\');
+                    files[i] = files[i].Substring(lastindx);
+                    files[i] = files[i].Replace("\\", "");
+                    progressBar.Value++;
+                    checkedListBox_files.Items.Add(files[i]);
+                }
+                progressBar.Value = progressBar.Maximum;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                label_restricted.Visible = true;
+            }
+            catch (Exception ex) { }
+        }
+        //Base File Methods
         private async Task<EncryptionStatus> EncryptFile(string path)
         {
             try
@@ -317,7 +316,13 @@ namespace Thing
             progressBar.Value = 0;
             progressBar.Maximum = value;
         }
-        private async void button_encryptSelected_Click(object sender, EventArgs e)
+        //Encrypt Selected
+        private void button_encryptSelected_Click(object sender, EventArgs e)
+        {
+            Thread t = new Thread(EncryptSelected_Click);
+            t.Start();
+        }
+        private async void EncryptSelected_Click()
         {
             DateTime start = DateTime.Now;
             string[] targets = GetSelected();
@@ -325,17 +330,23 @@ namespace Thing
             {
                 Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
                 Debug.WriteLine(tasks.Length + " " + targets.Length);
-                progressBar.Maximum = targets.Length;
-                progressBar.Value = 0;
 
                 for (int i = 0; i < tasks.Length; i++)
                 {
                     Debug.WriteLine("Running Task " + i);
                     tasks[i] = EncryptFile(targets[i]);
-                    progressBar.Value++;
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        UpdateProgressBar();
+                    });
                 }
 
                 EncryptionStatus[] status = await Task.WhenAll(tasks);
+                this.Invoke((MethodInvoker)delegate
+                {
+                    UpdateFiles();
+                });
+
                 int success = 0;
                 int alreadyencrypted = 0;
                 int acceserror = 0;
@@ -363,7 +374,13 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
-        private async void button_encryptAll_Click(object sender, EventArgs e)
+        //Encrypt All
+        private void button_encryptAll_Click(object sender, EventArgs e)
+        {
+            Thread t = new Thread(EncryptAll_Click);
+            t.Start();
+        }
+        private async void EncryptAll_Click()
         {
             DateTime start = DateTime.Now;
             string[] targets = filepaths.ToArray();
@@ -373,16 +390,21 @@ namespace Thing
             }
             if (targets.Length > 0)
             {
+                this.Invoke((MethodInvoker)delegate
+                {
+                    ResetProgressBar(targets.Length);
+                });
                 Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
-                Debug.WriteLine(tasks.Length + " " + targets.Length);
 
                 for (int i = 0; i < tasks.Length; i++)
                 {
-                    Debug.WriteLine("Running Task " + i);
                     tasks[i] = EncryptFile(targets[i]);
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        UpdateProgressBar();
+                    });
                 }
                 EncryptionStatus[] status = await Task.WhenAll(tasks);
-                Debug.WriteLine("All Tasks completed!");
 
                 int success = 0;
                 int alreadyencrypted = 0;
@@ -411,27 +433,37 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
-        private async void button_decryptSelected_Click(object sender, EventArgs e)
+        //Decrypt Selected
+        private void button_decryptSelected_Click(object sender, EventArgs e)
+        {
+            Thread t = new Thread(DecryptSelected_Click);
+            t.Start();
+        }
+        private async void DecryptSelected_Click()
         {
             DateTime start = DateTime.Now;
             string[] targets = GetSelected();
             if (targets.Length > 0)
             {
                 Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
-                progressBar.Maximum = targets.Length;
-                progressBar.Value = 0;
                 Debug.WriteLine(tasks.Length + " " + targets.Length);
 
                 for (int i = 0; i < tasks.Length; i++)
                 {
                     int index = i;
-                    Debug.WriteLine("Running Task " + index);
                     tasks[index] = DecryptFile(targets[index]);
-                    progressBar.Value++;
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        UpdateProgressBar();
+                    });
                 }
 
                 EncryptionStatus[] status = await Task.WhenAll(tasks);
-                Debug.WriteLine("All Tasks completed!");
+                this.Invoke((MethodInvoker)delegate
+                {
+                    UpdateFiles();
+                });
+
                 int success = 0;
                 int alreadydecrypted = 0;
                 int acceserror = 0;
@@ -459,12 +491,13 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
+        //Decrypt All
         private void Button_decryptAll_Click(object sender, EventArgs e)
         {
-            Thread t = new Thread(decryptAll_Click);
+            Thread t = new Thread(DecryptAll_Click);
             t.Start();
         }
-        private async void decryptAll_Click()
+        private async void DecryptAll_Click()
         {
             DateTime start = DateTime.Now;
             string[] targets = filepaths.ToArray();
@@ -487,11 +520,11 @@ namespace Thing
                 }
 
                 EncryptionStatus[] status = await Task.WhenAll(tasks);
-                Debug.WriteLine("All Tasks completed!");
                 this.Invoke((MethodInvoker)delegate
                 {
                     UpdateFiles();
                 });
+
                 int success = 0;
                 int alreadydecrypted = 0;
                 int acceserror = 0;
@@ -518,6 +551,7 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
+        //ENUMS
         private enum EncryptionStatus
         {
             Decrypted,
