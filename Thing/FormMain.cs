@@ -35,6 +35,7 @@ namespace Thing
             {
                 button_selectKey.Enabled = true;
             }
+            button_selectKey_Click(sender, e);
             UpdateFiles();
         }
         //UI Methods
@@ -150,6 +151,14 @@ namespace Thing
                 button_encryptAll.Enabled = true;
                 button_encryptSelected.Enabled = true;
                 button_encryptallANDsub.Enabled = true;
+            }
+        }
+        private void button_gotopath_Press(object sender, KeyPressEventArgs e)
+        {
+            if(e.KeyChar == (char)Keys.Enter)
+            {
+                e.Handled = true;
+                button_gotopath_Click(sender, EventArgs.Empty);
             }
         }
         //Base Methods
@@ -316,7 +325,7 @@ namespace Thing
             progressBar.Value = 0;
             progressBar.Maximum = value;
         }
-        //Encrypt Selected
+            //Encrypt Selected
         private void button_encryptSelected_Click(object sender, EventArgs e)
         {
             Thread t = new Thread(EncryptSelected_Click);
@@ -374,7 +383,7 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
-        //Encrypt All
+            //Encrypt All
         private void button_encryptAll_Click(object sender, EventArgs e)
         {
             Thread t = new Thread(EncryptAll_Click);
@@ -433,7 +442,7 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
-        //Decrypt Selected
+            //Decrypt Selected
         private void button_decryptSelected_Click(object sender, EventArgs e)
         {
             Thread t = new Thread(DecryptSelected_Click);
@@ -491,7 +500,7 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
-        //Decrypt All
+            //Decrypt All
         private void Button_decryptAll_Click(object sender, EventArgs e)
         {
             Thread t = new Thread(DecryptAll_Click);

@@ -79,6 +79,7 @@
             button_gotopath.Text = "Go!";
             button_gotopath.UseVisualStyleBackColor = true;
             button_gotopath.Click += button_gotopath_Click;
+            button_gotopath.KeyPress += button_gotopath_Press;
             // 
             // progressBar
             // 
