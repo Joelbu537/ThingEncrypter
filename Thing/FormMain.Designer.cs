@@ -379,7 +379,7 @@
             MinimumSize = new Size(1148, 796);
             Name = "FormMain";
             ShowIcon = false;
-            Text = "Ding";
+            Text = "Thing Encrypter";
             Load += Form1_Load;
             panel_encrypt.ResumeLayout(false);
             panel_decrypt.ResumeLayout(false);
