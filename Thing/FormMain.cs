@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
 
 namespace Thing
@@ -36,6 +37,7 @@ namespace Thing
                 object o = new object();
                 button_selectKey_Click(o, EventArgs.Empty);
             }
+            button_selectKey_Click(sender, e);
             UpdateFiles();
         }
         //UI Methods
@@ -153,6 +155,14 @@ namespace Thing
                 button_encryptallANDsub.Enabled = true;
             }
         }
+        private void button_gotopath_Press(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Enter)
+            {
+                e.Handled = true;
+                button_gotopath_Click(sender, EventArgs.Empty);
+            }
+        }
         //Base Methods
         private string[] GetSelected()
         {
@@ -189,6 +199,10 @@ namespace Thing
                 {
                     textBox_path.Text += "\\";
                 }
+                if (IsProtected(textBox_path.Text))
+                {
+                    label_restricted.Visible = true;
+                }
                 string[] files = Directory.GetFiles(textBox_path.Text);
                 filepaths = files.ToArray(); //POINTER!!!! HOLY SHIT!!!!!1!!
                 string[] directories = Directory.GetDirectories(textBox_path.Text);
@@ -204,18 +218,80 @@ namespace Thing
                     directories[i] = directories[i].Replace("\\", "");
                     progressBar.Value++;
                     listBox_directories.Items.Add(directories[i]);
+                    
                 }
                 for (int i = 0; i < files.Length; i++)
                 {
-                    int lastindx = files[i].LastIndexOf('\\');
-                    files[i] = files[i].Substring(lastindx);
-                    files[i] = files[i].Replace("\\", "");
-                    progressBar.Value++;
-                    checkedListBox_files.Items.Add(files[i]);
+                    if (!IsProtected(filepaths[i]))
+                    {
+                        int lastindx = files[i].LastIndexOf('\\');
+                        files[i] = files[i].Substring(lastindx);
+                        files[i] = files[i].Replace("\\", "");
+                        progressBar.Value++;
+                        checkedListBox_files.Items.Add(files[i]);
+                    }
                 }
                 progressBar.Value = progressBar.Maximum;
             }
             catch (Exception ex) { }
+        }
+        static bool IsProtected(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    var fileInfo = new FileInfo(path);
+                    return IsProtectedFile(fileInfo);
+                }
+                else if (Directory.Exists(path))
+                {
+                    var directoryInfo = new DirectoryInfo(path);
+                    return IsProtectedDirectory(directoryInfo);
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return true; //Kein access
+            }
+
+            return false;
+        }
+        static bool IsProtectedFile(FileInfo fileInfo)
+        {
+            FileSecurity fileSecurity = fileInfo.GetAccessControl();
+            AuthorizationRuleCollection rules = fileSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
+
+            foreach (FileSystemAccessRule rule in rules)
+            {
+                if ((rule.FileSystemRights & FileSystemRights.Write) == FileSystemRights.Write)
+                {
+                    if (rule.AccessControlType == AccessControlType.Deny)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false; // Kein Schutz gefunden
+        }
+        static bool IsProtectedDirectory(DirectoryInfo directoryInfo)
+        {
+            DirectorySecurity directorySecurity = directoryInfo.GetAccessControl();
+            AuthorizationRuleCollection rules = directorySecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
+
+            foreach (FileSystemAccessRule rule in rules)
+            {
+                if ((rule.FileSystemRights & FileSystemRights.Write) == FileSystemRights.Write)
+                {
+                    if (rule.AccessControlType == AccessControlType.Deny)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
         //Base File Methods
         private async Task<EncryptionStatus> EncryptFile(string path)
@@ -319,6 +395,7 @@ namespace Thing
         {
             progressBar.Value = 0;
             progressBar.Maximum = value;
+            Debug.WriteLine("Progressbar set to " + value);
         }
         //Encrypt Selected
         private void button_encryptSelected_Click(object sender, EventArgs e)
@@ -413,6 +490,10 @@ namespace Thing
                     });
                 }
                 EncryptionStatus[] status = await Task.WhenAll(tasks);
+                this.Invoke((MethodInvoker)delegate
+                {
+                    UpdateFiles();
+                });
 
                 int success = 0;
                 int alreadyencrypted = 0;
@@ -563,6 +644,7 @@ namespace Thing
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
             }
         }
+
         //ENUMS
         private enum EncryptionStatus
         {
