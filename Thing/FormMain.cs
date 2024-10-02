@@ -14,7 +14,7 @@ namespace Thing
         {
             InitializeComponent();
         }
-        private void Form1_Load(object sender, EventArgs e)
+        private void FormMain_Load(object sender, EventArgs e)
         {
             drives = DriveInfo.GetDrives();
             for (int i = 0; i < drives.Length; i++)
@@ -69,7 +69,7 @@ namespace Thing
                 else
                 {
                     int index = listBox_directories.SelectedIndex;
-                    if (listBox_directories.Items[index].ToString() != null)
+                    if (listBox_directories.Items[index].ToString() != null && listBox_directories.Items == null)
                     {
                         string directoryname = listBox_directories.Items[index].ToString();
                         textBox_path.Text = Path.Combine(textBox_path.Text, directoryname);

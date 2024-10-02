@@ -369,7 +369,7 @@
             Name = "FormMain";
             ShowIcon = false;
             Text = "ThingEncrypter";
-            Load += Form1_Load;
+            Load += FormMain_Load;
             panel_encrypt.ResumeLayout(false);
             panel_decrypt.ResumeLayout(false);
             panel1.ResumeLayout(false);
