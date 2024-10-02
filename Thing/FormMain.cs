@@ -33,7 +33,8 @@ namespace Thing
             }
             if (fcontains)
             {
-                button_selectKey.Enabled = true;
+                object o = new object();
+                button_selectKey_Click(o, EventArgs.Empty);
             }
             UpdateFiles();
         }
@@ -174,7 +175,6 @@ namespace Thing
             {
                 progressBar.Visible = true;
                 progressBar.Value = 0;
-                label_restricted.Enabled = false;
                 checkedListBox_files.Items.Clear();
                 listBox_directories.Items.Clear();
             }
@@ -214,10 +214,6 @@ namespace Thing
                     checkedListBox_files.Items.Add(files[i]);
                 }
                 progressBar.Value = progressBar.Maximum;
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                label_restricted.Visible = true;
             }
             catch (Exception ex) { }
         }
@@ -309,7 +305,15 @@ namespace Thing
         //CRYPTO STUFF
         private void UpdateProgressBar()
         {
-            progressBar.Value++;
+            try
+            {
+                progressBar.Value++;
+                Debug.WriteLine("a");
+            }
+            catch
+            {
+                Debug.WriteLine("AHHHHHHHHHHHHHHHHHHHHHHHHHH");
+            }
         }
         private void ResetProgressBar(int value)
         {
@@ -328,6 +332,10 @@ namespace Thing
             string[] targets = GetSelected();
             if (targets.Length > 0)
             {
+                this.Invoke((MethodInvoker)delegate
+                {
+                    ResetProgressBar(targets.Length);
+                });
                 Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
                 Debug.WriteLine(tasks.Length + " " + targets.Length);
 
@@ -445,6 +453,10 @@ namespace Thing
             string[] targets = GetSelected();
             if (targets.Length > 0)
             {
+                this.Invoke((MethodInvoker)delegate
+                {
+                    ResetProgressBar(targets.Length);
+                });
                 Task<EncryptionStatus>[] tasks = new Task<EncryptionStatus>[targets.Length];
                 Debug.WriteLine(tasks.Length + " " + targets.Length);
 
