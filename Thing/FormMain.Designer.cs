@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
             checkedListBox_files = new CheckedListBox();
             button_gotopath = new Button();
             progressBar = new ProgressBar();
@@ -362,11 +363,11 @@
             Controls.Add(checkedListBox_files);
             Controls.Add(panel_encrypt);
             FormBorderStyle = FormBorderStyle.FixedSingle;
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(4, 5, 4, 5);
             MaximizeBox = false;
             MinimumSize = new Size(1146, 788);
             Name = "FormMain";
-            ShowIcon = false;
             Text = "ThingEncrypter";
             Load += FormMain_Load;
             panel_encrypt.ResumeLayout(false);
