@@ -14,6 +14,19 @@ namespace Thing
         {
             InitializeComponent();
         }
+        public FormMain(string[] args)
+        {
+            InitializeComponent();
+            if (args.Length > 0)
+            {
+                if(File.Exists(args[0]))
+                {
+                    textBox_path.Text = Path.GetDirectoryName(args[0]);
+                    UpdateFiles();
+                    checkedListBox_files.SetItemChecked(checkedListBox_files.Items.IndexOf(Path.GetFileName(args[0])), true);
+                }
+            }
+        }
         private void FormMain_Load(object sender, EventArgs e)
         {
             drives = DriveInfo.GetDrives();
@@ -62,14 +75,13 @@ namespace Thing
             {
                 if (listBox_directories.SelectedItem.ToString() == "[RETURN]")
                 {
-
                     int lastindex = textBox_path.Text.LastIndexOf("\\");
                     textBox_path.Text = textBox_path.Text.Substring(0, lastindex);
                 }
                 else
                 {
                     int index = listBox_directories.SelectedIndex;
-                    if (listBox_directories.Items[index].ToString() != null && listBox_directories.Items == null)
+                    if (listBox_directories.Items[index].ToString() != null && listBox_directories.Items.Count > 0)
                     {
                         string directoryname = listBox_directories.Items[index].ToString();
                         textBox_path.Text = Path.Combine(textBox_path.Text, directoryname);
@@ -199,10 +211,6 @@ namespace Thing
                 {
                     textBox_path.Text += "\\";
                 }
-                if (IsProtected(textBox_path.Text))
-                {
-                    label_restricted.Visible = true;
-                }
                 string[] files = Directory.GetFiles(textBox_path.Text);
                 filepaths = files.ToArray(); //POINTER!!!! HOLY SHIT!!!!!1!!
                 string[] directories = Directory.GetDirectories(textBox_path.Text);
@@ -218,7 +226,7 @@ namespace Thing
                     directories[i] = directories[i].Replace("\\", "");
                     progressBar.Value++;
                     listBox_directories.Items.Add(directories[i]);
-                    
+
                 }
                 for (int i = 0; i < files.Length; i++)
                 {
@@ -642,6 +650,157 @@ namespace Thing
             else
             {
                 DialogResult r = MessageBox.Show("No files selected!", "Error!", MessageBoxButtons.OK);
+            }
+        }
+
+        private void button_encryptallANDsub_Click(object sender, EventArgs e)
+        {
+            Thread t = new Thread(EncryptAllANDsub_Click);
+            t.Start();
+        }
+        private async void EncryptAllANDsub_Click()
+        {
+            DateTime start = DateTime.Now;
+            List<string> targets = new List<string>();
+
+            if (Path.Exists(textBox_path.Text) && textBox_path.Text.Contains("\\"))
+            {
+                targets.AddRange(GetAllFiles(textBox_path.Text));
+            }
+
+            if (targets.Count > 0)
+            {
+                this.Invoke((MethodInvoker)delegate
+                {
+                    ResetProgressBar(targets.Count);
+                });
+
+                List<Task<EncryptionStatus>> tasks = new List<Task<EncryptionStatus>>();
+
+                Parallel.ForEach(targets, target =>
+                {
+                    tasks.Add(EncryptFile(target));
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        UpdateProgressBar();
+                    });
+                });
+
+                EncryptionStatus[] status = await Task.WhenAll(tasks);
+                this.Invoke((MethodInvoker)delegate
+                {
+                    UpdateFiles();
+                });
+
+                int success = 0;
+                int alreadyencrypted = 0;
+                int acceserror = 0;
+                int other = 0;
+                foreach (EncryptionStatus estatus in status)
+                {
+                    if (estatus == EncryptionStatus.Encrypted) success++;
+                    if (estatus == EncryptionStatus.AlreadyEncrypted) alreadyencrypted++;
+                    if (estatus == EncryptionStatus.AccesDenied) acceserror++;
+                    if (estatus == EncryptionStatus.Other) other++;
+                }
+                DateTime end = DateTime.Now;
+                TimeSpan duration = end - start;
+                string formattedDuration = $"{duration.Minutes}m {duration.Seconds}s {duration.Milliseconds:0000}ms";
+                string resultstring = $"The encryption process has been completed in {formattedDuration}.";
+                if (success > 0) resultstring += $"\r\n{success} files have been encrypted.";
+                if (alreadyencrypted > 0) resultstring += $"\r\n{alreadyencrypted} files were already encrypted.";
+                if (acceserror > 0) resultstring += $"\r\n{acceserror} files could not be accessed.";
+                if (other > 0) resultstring += $"\r\n{other} files could not be encrypted due to unknown reasons.";
+                DialogResult r = MessageBox.Show(resultstring, "Encryption completed!", MessageBoxButtons.OK);
+            }
+            else
+            {
+                DialogResult r = MessageBox.Show("No files found!", "Error!", MessageBoxButtons.OK);
+            }
+        }
+
+        private List<string> GetAllFiles(string path)
+        {
+            List<string> files = new List<string>();
+            try
+            {
+                files.AddRange(Directory.GetFiles(path));
+                foreach (string directory in Directory.GetDirectories(path))
+                {
+                    files.AddRange(GetAllFiles(directory));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"An error occurred while getting files: {ex.Message}");
+            }
+            return files;
+        }
+
+        private void button_decryptallANDsub_Click(object sender, EventArgs e)
+        {
+            Thread t = new Thread(DecryptAllANDsub_Click);
+            t.Start();
+        }
+
+        private async void DecryptAllANDsub_Click()
+        {
+            DateTime start = DateTime.Now;
+            List<string> targets = new List<string>();
+
+            if (Path.Exists(textBox_path.Text) && textBox_path.Text.Contains("\\"))
+            {
+                targets.AddRange(GetAllFiles(textBox_path.Text));
+            }
+
+            if (targets.Count > 0)
+            {
+                this.Invoke((MethodInvoker)delegate
+                {
+                    ResetProgressBar(targets.Count);
+                });
+
+                List<Task<EncryptionStatus>> tasks = new List<Task<EncryptionStatus>>();
+
+                Parallel.ForEach(targets, target =>
+                {
+                    tasks.Add(DecryptFile(target));
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        UpdateProgressBar();
+                    });
+                });
+
+                EncryptionStatus[] status = await Task.WhenAll(tasks);
+                this.Invoke((MethodInvoker)delegate
+                {
+                    UpdateFiles();
+                });
+
+                int success = 0;
+                int alreadydecrypted = 0;
+                int acceserror = 0;
+                int other = 0;
+                foreach (EncryptionStatus estatus in status)
+                {
+                    if (estatus == EncryptionStatus.Decrypted) success++;
+                    if (estatus == EncryptionStatus.AlreadyDecrypted) alreadydecrypted++;
+                    if (estatus == EncryptionStatus.AccesDenied) acceserror++;
+                    if (estatus == EncryptionStatus.Other) other++;
+                }
+                DateTime end = DateTime.Now;
+                TimeSpan duration = end - start;
+                string formattedDuration = $"{duration.Minutes}m {duration.Seconds}s {duration.Milliseconds:0000}ms";
+                string resultstring = $"The decryption process has been completed in {formattedDuration}.";
+                if (success > 0) resultstring += $"\r\n{success} files have been decrypted.";
+                if (alreadydecrypted > 0) resultstring += $"\r\n{alreadydecrypted} files were already decrypted.";
+                if (acceserror > 0) resultstring += $"\r\n{acceserror} files could not be accessed.";
+                if (other > 0) resultstring += $"\r\n{other} files could not be decrypted due to unknown reasons.";
+                DialogResult r = MessageBox.Show(resultstring, "Decryption completed!", MessageBoxButtons.OK);
+            }
+            else
+            {
+                DialogResult r = MessageBox.Show("No files found!", "Error!", MessageBoxButtons.OK);
             }
         }
 
